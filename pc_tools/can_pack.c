@@ -45,12 +45,13 @@ void unpack_accel(const uint8_t *data, int16_t *ax,int16_t *ay,int16_t *az){
     *az=unpack_i16(data,4);
 }
 
-void pack_speed(uint8_t *data,int offset,uint16_t speed_in){
-    pack_u16(data,offset,speed_in);
+void pack_speed(uint8_t *data,int offset,float speed_in){
+    uint16_t value=(uint16_t)roundf(speed_in*10);
+    pack_u16(data,offset,value);
 }
 
-uint16_t unpack_speed(const uint8_t *data,int offset){
-    return unpack_u16(data,offset);
+float unpack_speed(const uint8_t *data,int offset){
+    return unpack_u16(data,offset)/10.0f;
 }
 
 static void frame_init(can_frame_t *frame,uint16_t id,uint8_t dlc){
@@ -72,7 +73,7 @@ void make_accel_frame(can_frame_t *frame, int16_t ax,int16_t ay,int16_t az){
     pack_accel(frame->data,ax,ay,az);
 }
 
-void make_speed_frame(can_frame_t *frame,uint16_t speed_in){
+void make_speed_frame(can_frame_t *frame,float speed_in){
     frame_init(frame,CAN_ID_SPEED,2);
     pack_speed(frame->data,0,speed_in);
 }
@@ -81,37 +82,37 @@ void handle_frame(const can_frame_t *frame){
     switch (frame->id)
     {
     case CAN_ID_TEMP:
-        if (frame->id<2){
-            printf("Hibás dlc!");
+        if (frame->dlc<2){
+            printf("Hibás dlc!\n");
             break;
         }
         float temp = unpack_temp(frame->data,0);
-        printf("%.1f°C",temp);
+        printf("%.1f°C\n",temp);
         break;
     case CAN_ID_ACCEL:{
-        if (frame->id<6){
-            printf("Hibás dlc!");
+        if (frame->dlc<6){
+            printf("Hibás dlc!\n");
             break;
         }
         int16_t rx;
         int16_t ry;
         int16_t rz;
         unpack_accel(frame->data,&rx,&ry,&rz);
-        printf("%d mg",rx);
-        printf("%d mg",ry);
-        printf("%d mg",rz);
+        printf("%d mg ",rx);
+        printf("%d mg ",ry);
+        printf("%d mg \n",rz);
         break;
     }
     case CAN_ID_SPEED:
-        if (frame->id<2){
-            printf("Hibás dlc!");
+        if (frame->dlc<2){
+            printf("Hibás dlc!\n");
             break;
         }
-        uint16_t speed= unpack_speed(frame->data,0);
-        printf("%d km/h",speed);
+        float speed= unpack_speed(frame->data,0);
+        printf("%.1f km/h\n",speed);
         break;
     default:
-        printf("Ismeretlen ID!");
+        printf("Ismeretlen ID!\n");
         break;
     }
 }
